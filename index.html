@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="LearnEra - student platform">
+  <title>Sign in · LearnEra</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <main class="login-wrap">
+    <div class="login-shell">
+      <div class="login-brand">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1.4 2.7 3 6 3s6-1.6 6-3v-5"/>
+          </svg>
+        </span>
+        <span class="brand-name">LearnEra</span>
+      </div>
+
+      <h1>Welcome back</h1>
+      <p class="lede">Sign in with the account your administrator created for you.</p>
+
+      <p class="form-error" id="loginError" hidden></p>
+
+      <form id="loginForm" novalidate>
+        <div class="field">
+          <label for="email">Email</label>
+          <input class="input" id="email" name="email" type="email" autocomplete="email"
+                 placeholder="you@example.com" required>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input class="input" id="password" name="password" type="password" autocomplete="current-password"
+                 placeholder="Your password" required>
+        </div>
+        <button class="btn btn-primary btn-block" id="submitBtn" type="submit">Sign in</button>
+      </form>
+
+      <p class="login-foot">Access is created by your LearnEra administrator.</p>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/login.js"></script>
+</body>
+</html>

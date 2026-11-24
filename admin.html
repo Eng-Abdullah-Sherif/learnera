@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="LearnEra admin dashboard">
+  <title>Admin · LearnEra</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div id="app-topbar"></div>
+
+  <main class="page">
+    <div class="page-head">
+      <h1>Admin dashboard</h1>
+      <p>Manage courses, accounts and certificates for LearnEra.</p>
+    </div>
+
+    <div class="app-layout">
+      <aside class="side-nav" role="tablist" aria-label="Admin sections">
+        <span class="side-title">Manage</span>
+        <button type="button" class="nav-item active" data-section="courses" role="tab" aria-selected="true">
+          Courses <span class="nav-count" id="navCountCourses">0</span>
+        </button>
+        <button type="button" class="nav-item" data-section="accounts" role="tab" aria-selected="false">
+          Accounts <span class="nav-count" id="navCountAccounts">0</span>
+        </button>
+        <button type="button" class="nav-item" data-section="certificates" role="tab" aria-selected="false">
+          Certificates <span class="nav-count" id="navCountCerts">0</span>
+        </button>
+      </aside>
+
+      <div class="content">
+        <!-- ======================= Courses ======================= -->
+        <section class="section active" id="section-courses">
+          <div class="section-head">
+            <div>
+              <h2>Courses</h2>
+              <p class="sub">Create a course before adding students to it.</p>
+            </div>
+            <button type="button" class="btn btn-primary" id="addCourseBtn">+ Add course</button>
+          </div>
+          <div class="grid grid-2" id="coursesGrid"></div>
+        </section>
+
+        <!-- ======================= Accounts ======================= -->
+        <section class="section" id="section-accounts">
+          <div class="section-head">
+            <div>
+              <h2>Accounts</h2>
+              <p class="sub">Students, coordinators and instructors you have created.</p>
+            </div>
+            <button type="button" class="btn btn-primary" id="addAccountBtn">+ Add account</button>
+          </div>
+          <div class="list" id="accountsList"></div>
+        </section>
+
+        <!-- ===================== Certificates ===================== -->
+        <section class="section" id="section-certificates">
+          <div class="section-head">
+            <div>
+              <h2>Certificates</h2>
+              <p class="sub">Upload a certificate file for a student in a course.</p>
+            </div>
+            <button type="button" class="btn btn-primary" id="addCertBtn">+ Add certificate</button>
+          </div>
+          <div class="list" id="certsList"></div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <!-- ========================= Add course ========================= -->
+  <div class="modal" id="courseModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="courseModalTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 id="courseModalTitle">Add course</h2>
+        <button type="button" class="icon-btn" data-close="courseModal" aria-label="Close">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form id="courseForm" novalidate>
+        <div class="modal-body">
+          <p class="form-error" id="courseError" hidden></p>
+          <div class="field">
+            <label for="courseName">Course name</label>
+            <input class="input" id="courseName" maxlength="120" placeholder="e.g. Web Development Basics" required>
+          </div>
+          <div class="field">
+            <label for="courseDesc">Description</label>
+            <textarea class="textarea" id="courseDesc" maxlength="600" placeholder="Short summary of the course"></textarea>
+          </div>
+          <div class="field">
+            <label for="courseLocation">Location</label>
+            <select class="select" id="courseLocation">
+              <option value="online">Online</option>
+              <option value="offline">Offline</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Course days</label>
+            <div class="chips" id="courseDays"></div>
+            <span class="hint">Pick the days this course runs on.</span>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn" data-close="courseModal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="courseSubmit">Save course</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================= Add account ========================= -->
+  <div class="modal" id="accountModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="accountModalTitle">
+    <div class="modal-card modal-lg">
+      <div class="modal-head">
+        <h2 id="accountModalTitle">Add account</h2>
+        <button type="button" class="icon-btn" data-close="accountModal" aria-label="Close">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form id="accountForm" novalidate>
+        <div class="modal-body">
+          <p class="form-error" id="accountError" hidden></p>
+          <div class="field">
+            <label for="accAvatar">Profile picture</label>
+            <div class="avatar-picker">
+              <img class="avatar-preview" id="accAvatarPreview" alt="" hidden>
+              <input type="file" id="accAvatar" accept="image/png,image/jpeg,image/webp,image/gif">
+            </div>
+            <span class="hint">Optional. PNG or JPG, up to 3 MB.</span>
+          </div>
+          <div class="field">
+            <label for="accName">Full name</label>
+            <input class="input" id="accName" maxlength="120" placeholder="e.g. Sara Ahmed" required>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="accEmail">Email</label>
+              <input class="input" id="accEmail" type="email" autocomplete="off" placeholder="student@example.com" required>
+            </div>
+            <div class="field">
+              <label for="accPassword">Password</label>
+              <input class="input" id="accPassword" type="text" autocomplete="off" minlength="6" placeholder="At least 6 characters" required>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="accRole">Role</label>
+              <select class="select" id="accRole">
+                <option value="student">Student</option>
+                <option value="coordinator">Coordinator</option>
+                <option value="instructor">Instructor</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="accCourse">Course</label>
+              <select class="select" id="accCourse"></select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn" data-close="accountModal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="accountSubmit">Create account</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================= Edit account ========================= -->
+  <div class="modal" id="editAccountModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="editAccountTitle">
+    <div class="modal-card modal-lg">
+      <div class="modal-head">
+        <h2 id="editAccountTitle">Edit account</h2>
+        <button type="button" class="icon-btn" data-close="editAccountModal" aria-label="Close">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form id="editAccountForm" novalidate>
+        <div class="modal-body">
+          <p class="form-error" id="editAccountError" hidden></p>
+          <input type="hidden" id="editId">
+          <div class="field">
+            <label for="editAvatar">Profile picture</label>
+            <div class="avatar-picker">
+              <img class="avatar-preview" id="editAvatarPreview" alt="">
+              <input type="file" id="editAvatar" accept="image/png,image/jpeg,image/webp,image/gif">
+            </div>
+            <span class="hint">Leave empty to keep the current picture.</span>
+          </div>
+          <div class="field">
+            <label for="editName">Full name</label>
+            <input class="input" id="editName" maxlength="120" required>
+          </div>
+          <div class="field">
+            <label for="editEmail">Email</label>
+            <input class="input" id="editEmail" type="email" disabled>
+            <span class="hint">Email and password are managed in Supabase Authentication.</span>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="editRole">Role</label>
+              <select class="select" id="editRole">
+                <option value="student">Student</option>
+                <option value="coordinator">Coordinator</option>
+                <option value="instructor">Instructor</option>
+                <option value="admin">Administrator</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="editCourse">Course</label>
+              <select class="select" id="editCourse"></select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn" data-close="editAccountModal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="editAccountSubmit">Save changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================= Add certificate ======================= -->
+  <div class="modal" id="certModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="certModalTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 id="certModalTitle">Add certificate</h2>
+        <button type="button" class="icon-btn" data-close="certModal" aria-label="Close">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form id="certForm" novalidate>
+        <div class="modal-body">
+          <p class="form-error" id="certError" hidden></p>
+          <p class="form-note">Step 1 — choose a course. Step 2 — choose one of its students. Step 3 — upload the certificate file.</p>
+          <div class="field">
+            <label for="certCourse">1. Course</label>
+            <select class="select" id="certCourse" required></select>
+          </div>
+          <div class="field">
+            <label for="certStudent">2. Student</label>
+            <select class="select" id="certStudent" required disabled></select>
+            <span class="hint" id="certStudentHint">Pick a course first.</span>
+          </div>
+          <div class="field">
+            <label for="certFile">3. Certificate file</label>
+            <input type="file" id="certFile" accept=".pdf,.png,.jpg,.jpeg" required>
+            <span class="hint">PDF or image, up to 10 MB.</span>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn" data-close="certModal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="certSubmit">Upload certificate</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

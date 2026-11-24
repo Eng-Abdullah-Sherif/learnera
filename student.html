@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="LearnEra student dashboard">
+  <title>My dashboard · LearnEra</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div id="app-topbar"></div>
+
+  <main class="page">
+    <div class="page-head">
+      <h1>My dashboard</h1>
+      <p>Your course, attendance and certificate at a glance.</p>
+    </div>
+
+    <div class="profile-hero" id="hero"></div>
+
+    <div class="grid grid-3" id="stats" style="margin-top:18px"></div>
+
+    <section class="card" id="progressCard" style="margin-top:18px">
+      <div class="section-head">
+        <div>
+          <h2>Course completion</h2>
+          <p class="sub">Present sessions out of all recorded sessions.</p>
+        </div>
+        <span class="badge badge-violet" id="progressLabel">0%</span>
+      </div>
+      <div class="progress"><span id="progressBar" style="width:0%"></span></div>
+    </section>
+
+    <div class="grid grid-2" style="margin-top:18px">
+      <section class="card" id="attendanceCard">
+        <div class="section-head">
+          <div>
+            <h2>Attendance</h2>
+            <p class="sub">Sessions recorded for you by your instructor.</p>
+          </div>
+        </div>
+        <div id="attendanceBody"></div>
+      </section>
+
+      <section class="card" id="certCard">
+        <div class="section-head">
+          <div>
+            <h2>Certificate</h2>
+            <p class="sub">Uploaded by an administrator.</p>
+          </div>
+        </div>
+        <div id="certBody"></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/student.js"></script>
+</body>
+</html>
