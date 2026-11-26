@@ -25,6 +25,12 @@
         <button type="button" class="nav-item" data-section="accounts" role="tab" aria-selected="false">
           Accounts <span class="nav-count" id="navCountAccounts">0</span>
         </button>
+        <button type="button" class="nav-item" data-section="files" role="tab" aria-selected="false">
+          Course files <span class="nav-count" id="navCountFiles">0</span>
+        </button>
+        <button type="button" class="nav-item" data-section="assignments" role="tab" aria-selected="false">
+          Assignments <span class="nav-count" id="navCountAssignments">0</span>
+        </button>
         <button type="button" class="nav-item" data-section="certificates" role="tab" aria-selected="false">
           Certificates <span class="nav-count" id="navCountCerts">0</span>
         </button>
@@ -53,6 +59,38 @@
             <button type="button" class="btn btn-primary" id="addAccountBtn">+ Add account</button>
           </div>
           <div class="list" id="accountsList"></div>
+        </section>
+
+        <!-- ===================== Course files ===================== -->
+        <section class="section" id="section-files">
+          <div class="section-head">
+            <div>
+              <h2>Course files</h2>
+              <p class="sub">Materials you share with a course's students.</p>
+            </div>
+            <button type="button" class="btn btn-primary" id="addFileBtn">+ Upload file</button>
+          </div>
+          <div class="field" style="max-width:360px">
+            <label for="filesCourse">Course</label>
+            <select class="select" id="filesCourse"></select>
+          </div>
+          <div class="list" id="filesList"></div>
+        </section>
+
+        <!-- ===================== Assignments ===================== -->
+        <section class="section" id="section-assignments">
+          <div class="section-head">
+            <div>
+              <h2>Assignments</h2>
+              <p class="sub">Homework you send to a course, and the solutions students submit.</p>
+            </div>
+            <button type="button" class="btn btn-primary" id="addAssignmentBtn">+ Add assignment</button>
+          </div>
+          <div class="field" style="max-width:360px">
+            <label for="assignmentsCourse">Course</label>
+            <select class="select" id="assignmentsCourse"></select>
+          </div>
+          <div class="list" id="assignmentsList"></div>
         </section>
 
         <!-- ===================== Certificates ===================== -->
@@ -98,9 +136,13 @@
             </select>
           </div>
           <div class="field">
-            <label>Course days</label>
-            <div class="chips" id="courseDays"></div>
-            <span class="hint">Pick the days this course runs on.</span>
+            <label for="courseDateInput">Course dates</label>
+            <div class="date-add">
+              <input class="input" type="date" id="courseDateInput">
+              <button type="button" class="btn" id="courseAddDateBtn">Add date</button>
+            </div>
+            <div class="chips" id="courseDates"></div>
+            <span class="hint">Pick the exact dates this course runs on.</span>
           </div>
         </div>
         <div class="modal-foot">
@@ -126,14 +168,19 @@
           <div class="field">
             <label for="accAvatar">Profile picture</label>
             <div class="avatar-picker">
-              <img class="avatar-preview" id="accAvatarPreview" alt="" hidden>
+              <img class="avatar-preview avatar-drag" id="accAvatarPreview" alt="" hidden>
               <input type="file" id="accAvatar" accept="image/png,image/jpeg,image/webp,image/gif">
             </div>
-            <span class="hint">Optional. PNG or JPG, up to 3 MB.</span>
+            <span class="hint">Optional. PNG or JPG, up to 3 MB. Drag the picture inside the circle to frame it.</span>
           </div>
           <div class="field">
             <label for="accName">Full name</label>
             <input class="input" id="accName" maxlength="120" placeholder="e.g. Sara Ahmed" required>
+          </div>
+          <div class="field">
+            <label for="accMemberId">ID</label>
+            <input class="input" id="accMemberId" maxlength="40" autocomplete="off" placeholder="e.g. STU-2026-001" required>
+            <span class="hint">Unique identifier for this account (e.g. student number).</span>
           </div>
           <div class="field-row">
             <div class="field">
@@ -154,10 +201,15 @@
                 <option value="instructor">Instructor</option>
               </select>
             </div>
-            <div class="field">
+            <div class="field" id="accCourseWrap">
               <label for="accCourse">Course</label>
               <select class="select" id="accCourse"></select>
             </div>
+          </div>
+          <div class="field" id="accCoordWrap" hidden>
+            <label>Courses</label>
+            <div class="chips" id="accCoordCourses"></div>
+            <span class="hint">Select every course this account manages.</span>
           </div>
         </div>
         <div class="modal-foot">
@@ -184,14 +236,19 @@
           <div class="field">
             <label for="editAvatar">Profile picture</label>
             <div class="avatar-picker">
-              <img class="avatar-preview" id="editAvatarPreview" alt="">
+              <img class="avatar-preview avatar-drag" id="editAvatarPreview" alt="">
               <input type="file" id="editAvatar" accept="image/png,image/jpeg,image/webp,image/gif">
             </div>
-            <span class="hint">Leave empty to keep the current picture.</span>
+            <span class="hint">Leave empty to keep the current picture. Drag the picture inside the circle to frame it.</span>
           </div>
           <div class="field">
             <label for="editName">Full name</label>
             <input class="input" id="editName" maxlength="120" required>
+          </div>
+          <div class="field">
+            <label for="editMemberId">ID</label>
+            <input class="input" id="editMemberId" maxlength="40" autocomplete="off" required>
+            <span class="hint">Unique identifier for this account (e.g. student number).</span>
           </div>
           <div class="field">
             <label for="editEmail">Email</label>
@@ -208,10 +265,15 @@
                 <option value="admin">Administrator</option>
               </select>
             </div>
-            <div class="field">
+            <div class="field" id="editCourseWrap">
               <label for="editCourse">Course</label>
               <select class="select" id="editCourse"></select>
             </div>
+          </div>
+          <div class="field" id="editCoordWrap" hidden>
+            <label>Courses</label>
+            <div class="chips" id="editCoordCourses"></div>
+            <span class="hint">Select every course this account manages.</span>
           </div>
         </div>
         <div class="modal-foot">
@@ -255,6 +317,100 @@
           <button type="submit" class="btn btn-primary" id="certSubmit">Upload certificate</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ====================== Upload course file ====================== -->
+  <div class="modal" id="fileModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="fileModalTitle">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2 id="fileModalTitle">Upload course file</h2>
+        <button type="button" class="icon-btn" data-close="fileModal" aria-label="Close">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form id="fileForm" novalidate>
+        <div class="modal-body">
+          <p class="form-error" id="fileError" hidden></p>
+          <div class="field">
+            <label for="fileCourse">Course</label>
+            <select class="select" id="fileCourse" required></select>
+          </div>
+          <div class="field">
+            <label for="fileTitle">Title</label>
+            <input class="input" id="fileTitle" maxlength="140" placeholder="e.g. Week 3 slides" required>
+          </div>
+          <div class="field">
+            <label for="fileFile">File</label>
+            <input type="file" id="fileFile" required>
+            <span class="hint">Any file type, up to 25 MB.</span>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn" data-close="fileModal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="fileSubmit">Upload file</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================= Add assignment ======================= -->
+  <div class="modal" id="assignmentModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="assignmentModalTitle">
+    <div class="modal-card modal-lg">
+      <div class="modal-head">
+        <h2 id="assignmentModalTitle">Add assignment</h2>
+        <button type="button" class="icon-btn" data-close="assignmentModal" aria-label="Close">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <form id="assignmentForm" novalidate>
+        <div class="modal-body">
+          <p class="form-error" id="assignmentError" hidden></p>
+          <div class="field">
+            <label for="assignmentCourse">Course</label>
+            <select class="select" id="assignmentCourse" required></select>
+          </div>
+          <div class="field">
+            <label for="assignmentTitle">Title</label>
+            <input class="input" id="assignmentTitle" maxlength="140" placeholder="e.g. Homework 1" required>
+          </div>
+          <div class="field">
+            <label for="assignmentDescription">Description</label>
+            <textarea class="textarea" id="assignmentDescription" maxlength="800" placeholder="Instructions for the students"></textarea>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="assignmentDue">Due date</label>
+              <input class="input" type="date" id="assignmentDue">
+            </div>
+            <div class="field">
+              <label for="assignmentFile">Attachment</label>
+              <input type="file" id="assignmentFile">
+            </div>
+          </div>
+          <span class="hint">Attachment and due date are optional.</span>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn" data-close="assignmentModal">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="assignmentSubmit">Create assignment</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ======================= Submissions ======================= -->
+  <div class="modal" id="submissionsModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="submissionsTitle">
+    <div class="modal-card modal-lg">
+      <div class="modal-head">
+        <h2 id="submissionsTitle">Submissions</h2>
+        <button type="button" class="icon-btn" data-close="submissionsModal" aria-label="Close">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="submissionsBody"></div>
+      <div class="modal-foot">
+        <button type="button" class="btn" data-close="submissionsModal">Close</button>
+      </div>
     </div>
   </div>
 

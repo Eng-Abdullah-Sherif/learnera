@@ -1,7 +1,8 @@
 /* ============================================================================
    LearnEra - student dashboard
-   Shows the signed-in user's profile, course, attendance, completion and
-   certificate. All reads are limited by Row Level Security to the own row.
+   Shows the signed-in user's profile, course details, the course files and the
+   assignments sent by the instructor (with solution upload).
+   All reads are limited by Row Level Security to the data the user may see.
    ========================================================================== */
 (function () {
   "use strict";
@@ -9,161 +10,301 @@
   var db = App.db;
   var $ = function (id) { return document.getElementById(id); };
 
-  function emptyBlock(text) { return '<div class="empty">' + App.esc(text) + "</div>"; }
+  var profile = null;
+  var course = null;
+  var isStudent = false;
+  var pendingAssignmentId = null;
 
-  function renderHero(profile, course) {
-    var name = profile.full_name || profile.email || "Member";
-    var tags = "";
-    if (course) {
-      tags += '<span class="badge badge-violet">' + App.esc(course.name) + "</span>";
-      tags += '<span class="badge ' + (course.location === "online" ? "badge-cyan" : "badge-indigo") + '">' +
-        (course.location === "online" ? "Online" : "Offline") + "</span>";
-      tags += '<span class="badge badge-muted">' + App.esc(App.daysLabel(course.course_days)) + "</span>";
-    } else {
-      tags += '<span class="badge badge-muted">No course assigned</span>';
-    }
+  var ICON_ANNOUNCE = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 0 1-5.8-1.6"/></svg>';
+
+  function emptyBlock(text) { return '<div class="empty">' + App.esc(text) + "</div>"; }
+  function sanitizeName(name) {
+    return String(name).replace(/[^a-zA-Z0-9._-]/g, "-").slice(-60) || "file";
+  }
+  function sortedDates(dates) {
+    return (dates || []).slice().sort();
+  }
+  function fmtScore(v) {
+    var n = Number(v);
+    if (isNaN(n)) return "0";
+    return (Math.round(n * 100) / 100).toString();
+  }
+
+  /* ======================= Hero ======================= */
+  function renderHero(row, courseData) {
+    var name = row.full_name || row.email || "Member";
+    var tags = '<span class="badge badge-muted">ID: ' + App.esc(row.member_id || "—") + "</span>";
+
+    var coursePanel = courseData
+      ? '<button type="button" class="hero-course" id="heroCourseBtn">' +
+          '<span class="badge badge-violet">' + App.esc(courseData.name) + "</span>" +
+          '<span class="badge ' + (courseData.location === "online" ? "badge-cyan" : "badge-indigo") + '">' +
+            (courseData.location === "online" ? "Online" : "Offline") + "</span>" +
+          '<span class="badge badge-muted">' + App.esc(App.datesLabel(courseData.course_dates, 4)) + "</span>" +
+          '<span class="hero-course-hint">View full details</span>' +
+        "</button>"
+      : '<div class="hero-course"><span class="badge badge-muted">No course assigned</span></div>';
 
     $("hero").innerHTML =
-      App.avatarMarkup(profile.avatar_url, name, "avatar-xl") +
-      "<div>" +
-        "<h1>" + App.esc(name) + "</h1>" +
-        '<p class="sub">' + App.esc(App.roleLabel(profile.role)) + " · " + App.esc(profile.email || "") + "</p>" +
-        '<div class="tags">' + tags + "</div>" +
-      "</div>";
-  }
-
-  function renderStats(present, absent, total) {
-    var completion = total ? Math.round((present / total) * 100) : 0;
-    $("stats").innerHTML =
-      '<div class="stat stat-green"><span class="stat-label">Attendance days</span>' +
-        '<span class="stat-value">' + present + "</span></div>" +
-      '<div class="stat stat-rose"><span class="stat-label">Absence days</span>' +
-        '<span class="stat-value">' + absent + "</span></div>" +
-      '<div class="stat stat-violet"><span class="stat-label">Completion</span>' +
-        '<span class="stat-value">' + completion + "<small>%</small></span></div>";
-    $("progressBar").style.width = completion + "%";
-    $("progressLabel").textContent = completion + "%";
-    return completion;
-  }
-
-  function renderAttendance(rows) {
-    var body = $("attendanceBody");
-    var present = rows.filter(function (r) { return r.status === "present"; });
-    var absent = rows.filter(function (r) { return r.status === "absent"; });
-
-    if (!rows.length) {
-      body.innerHTML = emptyBlock("No attendance has been recorded yet.");
-      return;
-    }
-
-    function dateList(title, list, badgeClass) {
-      return '<div><span class="stat-label">' + title + " (" + list.length + ")</span>" +
-        '<div class="list" style="margin-top:10px">' +
-        (list.length
-          ? list.map(function (r) {
-              return '<div class="row" style="padding:9px 13px">' +
-                '<div class="row-main row-grow"><span class="title">' + App.fmtDate(r.session_date) + "</span></div>" +
-                '<span class="badge ' + badgeClass + '">' + (badgeClass === "badge-green" ? "Present" : "Absent") + "</span>" +
-                "</div>";
-            }).join("")
-          : '<p class="muted">None.</p>') +
-        "</div></div>";
-    }
-
-    body.innerHTML = '<div class="grid grid-2">' +
-      dateList("Present", present, "badge-green") +
-      dateList("Absent", absent, "badge-rose") +
-      "</div>";
-  }
-
-  function renderCertificate(cert) {
-    var body = $("certBody");
-    if (!cert) {
-      body.innerHTML = emptyBlock("No certificate has been issued yet.");
-      return;
-    }
-    body.innerHTML =
-      '<div class="row" style="flex-direction:column;align-items:flex-start;gap:14px">' +
+      '<div class="hero-main">' +
+        App.avatarMarkup(row.avatar_url, name, "avatar-xl", row.avatar_position) +
         "<div>" +
-          '<span class="title" style="font-weight:600">Certificate file</span>' +
-          '<p class="muted" style="font-size:.85rem;margin-top:4px">Issued on ' + App.fmtDate(cert.issued_at) + "</p>" +
+          "<h1>" + App.esc(name) + "</h1>" +
+          '<p class="sub">' + App.esc(App.roleLabel(row.role)) + " · " + App.esc(row.email || "") + "</p>" +
+          '<div class="tags">' + tags + "</div>" +
         "</div>" +
-        '<button type="button" class="btn btn-primary" id="downloadCertBtn">Download certificate</button>' +
-      "</div>";
+      "</div>" +
+      coursePanel;
 
-    $("downloadCertBtn").addEventListener("click", async function () {
-      var btn = this;
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner"></span> Preparing…';
-      var res = await db.storage.from(App.CERTIFICATE_BUCKET).createSignedUrl(cert.file_path, 300);
-      btn.disabled = false;
-      btn.textContent = "Download certificate";
-      if (res.error) return App.toast("Could not open the certificate: " + res.error.message, "error");
-      window.open(res.data.signedUrl, "_blank", "noopener");
+    if ($("heroCourseBtn")) $("heroCourseBtn").addEventListener("click", openCourseDetail);
+  }
+
+  async function openCourseDetail() {
+    if (!course) return;
+    $("courseDetailTitle").textContent = course.name;
+    var body = $("courseDetailBody");
+    body.innerHTML = '<div class="empty">Loading…</div>';
+
+    var attendance = {};
+    if (profile) {
+      var res = await db.from("attendance")
+        .select("session_date, status")
+        .eq("student_id", profile.id)
+        .eq("course_id", course.id);
+      if (res.error) App.toast(res.error.message, "error");
+      (res.data || []).forEach(function (r) { attendance[r.session_date] = r.status; });
+    }
+
+    var dates = sortedDates(course.course_dates);
+    var today = App.todayISO();
+    var nextMarked = false;
+    var presentCount = 0;
+    var absentCount = 0;
+    dates.forEach(function (d) {
+      if (attendance[d] === "present") presentCount++;
+      else if (attendance[d] === "absent") absentCount++;
+    });
+
+    var timeline = dates.length
+      ? '<div class="tl">' + dates.map(function (d) {
+          var status = attendance[d] || null;
+          var isNext = !nextMarked && d >= today;
+          if (isNext) nextMarked = true;
+          var cls = "tl-item " +
+            (status === "present" ? "is-present" : status === "absent" ? "is-absent" : "is-none") +
+            (isNext ? " is-next" : "");
+          var label = status === "present" ? "Present" : status === "absent" ? "Absent" : "No record";
+          return '<div class="' + cls + '">' +
+            '<span class="tl-dot"></span>' +
+            '<span class="tl-body">' +
+              '<span class="tl-date">' + App.esc(App.dateLabel(d)) + "</span>" +
+              '<span class="tl-status">' + App.esc(label) + "</span>" +
+            "</span>" +
+            (isNext ? '<span class="badge badge-violet tl-next">Next</span>' : "") +
+          "</div>";
+        }).join("") + "</div>"
+      : '<p class="muted">No dates set for this course.</p>';
+
+    body.innerHTML =
+      '<div class="detail-grid">' +
+        '<div class="detail-info">' +
+          '<h3 class="detail-name">' + App.esc(course.name) + "</h3>" +
+          '<p class="muted">' + (course.description ? App.esc(course.description) : "No description.") + "</p>" +
+          '<div class="tags">' +
+            '<span class="badge ' + (course.location === "online" ? "badge-cyan" : "badge-indigo") + '">' +
+              (course.location === "online" ? "Online" : "Offline") + "</span>" +
+            '<span class="badge badge-green">Present: ' + presentCount + "</span>" +
+            '<span class="badge badge-rose">Absent: ' + absentCount + "</span>" +
+          "</div>" +
+        "</div>" +
+        '<div class="detail-timeline">' +
+          '<h4 class="detail-tl-title">Schedule</h4>' + timeline +
+        "</div>" +
+      "</div>";
+    App.openModal("courseDetailModal");
+  }
+
+  /* ======================= Course files ======================= */
+  async function loadFiles() {
+    var body = $("filesBody");
+    if (!course) { body.innerHTML = emptyBlock("No course assigned yet."); return; }
+    var res = await db.from("course_files")
+      .select("id, title, file_path, uploaded_at")
+      .eq("course_id", course.id)
+      .order("uploaded_at", { ascending: false });
+    if (res.error) { body.innerHTML = emptyBlock(res.error.message); return; }
+    var rows = res.data || [];
+    if (!rows.length) { body.innerHTML = emptyBlock("No files have been shared yet."); return; }
+
+    body.innerHTML = '<div class="list">' + rows.map(function (f) {
+      return '<div class="row">' +
+        '<div class="row-main row-grow">' +
+          '<span class="title">' + App.esc(f.title) + "</span>" +
+          '<span class="sub">Added ' + App.fmtDate(f.uploaded_at) + "</span>" +
+        "</div>" +
+        '<div class="row-actions">' +
+          '<button type="button" class="btn btn-sm" data-download-file="' + App.esc(f.file_path) + '">Download</button>' +
+        "</div></div>";
+    }).join("") + "</div>";
+
+    body.querySelectorAll("[data-download-file]").forEach(function (btn) {
+      btn.addEventListener("click", function () { download(App.COURSE_FILE_BUCKET, btn.dataset.downloadFile, btn); });
     });
   }
 
-  async function init() {
-    var auth = await App.requireAuth("student");
-    if (!auth) return;
-    var profile = auth.profile;
+  /* ======================= Assignments ======================= */
+  async function loadAssignments() {
+    var body = $("assignmentsBody");
+    if (!course) { body.innerHTML = emptyBlock("No course assigned yet."); return; }
 
+    var res = await db.from("assignments")
+      .select("id, title, description, file_path, due_date, created_at")
+      .eq("course_id", course.id)
+      .order("created_at", { ascending: false });
+    if (res.error) { body.innerHTML = emptyBlock(res.error.message); return; }
+    var rows = res.data || [];
+    if (!rows.length) { body.innerHTML = emptyBlock("No assignments yet."); return; }
+
+    var byId = {};
+    if (isStudent) {
+      var subs = await db.from("assignment_submissions")
+        .select("assignment_id, file_path, submitted_at, grade, feedback")
+        .eq("student_id", profile.id);
+      if (subs.error) App.toast(subs.error.message, "error");
+      (subs.data || []).forEach(function (s) { byId[s.assignment_id] = s; });
+    }
+
+    body.innerHTML = '<div class="list">' + rows.map(function (a) {
+      var sub = byId[a.id];
+      var hasGrade = !!(sub && sub.grade !== null && sub.grade !== undefined);
+      var actions = "";
+      if (a.file_path) {
+        actions += '<button type="button" class="btn btn-sm" data-download-file="' + App.esc(a.file_path) + '">Attachment</button>';
+      }
+      if (isStudent) {
+        actions += '<button type="button" class="btn btn-sm btn-primary" data-submit="' + a.id + '">' +
+          (sub ? "Replace solution" : "Submit solution") + "</button>";
+      }
+      var status = isStudent
+        ? (sub
+            ? '<span class="badge badge-green">Submitted ' + App.fmtDate(sub.submitted_at) + "</span>" +
+              (hasGrade ? '<span class="badge badge-violet">Grade ' + App.esc(fmtScore(sub.grade)) + "</span>" : "")
+            : '<span class="badge badge-rose">Not submitted</span>')
+        : "";
+      var feedback = hasGrade && sub.feedback
+        ? '<p class="grade-feedback"><strong>Feedback:</strong> ' + App.esc(sub.feedback) + "</p>"
+        : "";
+      return '<div class="row" style="flex-direction:column;align-items:stretch;gap:10px">' +
+        '<div class="row">' +
+          '<div class="row-main row-grow">' +
+            '<span class="title">' + App.esc(a.title) + "</span>" +
+            '<span class="sub">' + (a.due_date ? "Due " + App.fmtDate(a.due_date) : "No due date") + "</span>" +
+          "</div>" +
+          status +
+          '<div class="row-actions">' + actions + "</div>" +
+        "</div>" +
+        (a.description ? '<p class="muted" style="font-size:.86rem">' + App.esc(a.description) + "</p>" : "") +
+        feedback +
+      "</div>";
+    }).join("") + "</div>";
+
+    body.querySelectorAll("[data-download-file]").forEach(function (btn) {
+      btn.addEventListener("click", function () { download(App.COURSE_FILE_BUCKET, btn.dataset.downloadFile, btn); });
+    });
+    body.querySelectorAll("[data-submit]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        pendingAssignmentId = btn.dataset.submit;
+        $("solutionInput").click();
+      });
+    });
+
+    return rows.length;
+  }
+
+  async function onSolutionChosen() {
+    var input = $("solutionInput");
+    var file = input.files[0];
+    input.value = "";
+    var assignmentId = pendingAssignmentId;
+    pendingAssignmentId = null;
+    if (!file || !assignmentId) return;
+    if (file.size > 20 * 1024 * 1024) return App.toast("Solution file must be smaller than 20 MB.", "error");
+
+    try {
+      var prev = await db.from("assignment_submissions")
+        .select("file_path").eq("assignment_id", assignmentId).eq("student_id", profile.id).maybeSingle();
+      if (prev.data && prev.data.file_path) {
+        await db.storage.from(App.SUBMISSION_BUCKET).remove([prev.data.file_path]);
+      }
+
+      var path = assignmentId + "/" + profile.id + "/" + Date.now() + "-" + sanitizeName(file.name);
+      var up = await db.storage.from(App.SUBMISSION_BUCKET).upload(path, file, { cacheControl: "3600" });
+      if (up.error) throw new Error("Upload failed: " + up.error.message);
+
+      var save = await db.from("assignment_submissions").upsert({
+        assignment_id: assignmentId,
+        student_id: profile.id,
+        file_path: path,
+        submitted_at: new Date().toISOString()
+      }, { onConflict: "assignment_id,student_id" });
+      if (save.error) throw new Error("Could not save your submission: " + save.error.message);
+
+      App.toast("Solution submitted.", "success");
+      await loadAssignments();
+    } catch (err) {
+      App.toast(err.message, "error");
+    }
+  }
+
+  async function download(bucket, path, btn) {
+    var label = btn.textContent;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>';
+    var res = await db.storage.from(bucket).createSignedUrl(path, 300);
+    btn.disabled = false;
+    btn.textContent = label;
+    if (res.error) return App.toast("Could not open the file: " + res.error.message, "error");
+    window.open(res.data.signedUrl, "_blank", "noopener");
+  }
+
+  /* ======================= Boot ======================= */
+  async function init() {
+    var auth = await App.requireAuth();
+    if (!auth) return;
+    profile = auth.profile;
     App.renderTopbar(profile);
 
     var res = await db.from("profiles")
-      .select("*, courses:course_id(name, description, location, course_days)")
+      .select("*, courses:course_id(id, name, description, location, course_dates)")
       .eq("id", profile.id)
       .maybeSingle();
 
     if (res.error) App.toast(res.error.message, "error");
     var row = res.data || profile;
-    var course = row.courses || null;
+    course = row.courses || null;
+    isStudent = row.role === "student";
     renderHero(row, course);
 
-    if (row.role !== "student") {
-      $("stats").innerHTML = emptyBlock("Attendance and certificates are only tracked for student accounts.");
-      $("progressCard").hidden = true;
-      $("attendanceCard").hidden = true;
-      $("certCard").hidden = true;
-      App.setNotifications([
-        { title: "Signed in as " + App.roleLabel(row.role), text: course ? "Course: " + course.name : "No course assigned." }
-      ]);
-      return;
-    }
+    $("solutionInput").addEventListener("change", onSolutionChosen);
 
-    var attendance = await db.from("attendance")
-      .select("session_date, status")
-      .eq("student_id", profile.id)
-      .order("session_date", { ascending: false });
-
-    if (attendance.error) App.toast(attendance.error.message, "error");
-    var rows = attendance.data || [];
-    var present = rows.filter(function (r) { return r.status === "present"; }).length;
-    var absent = rows.filter(function (r) { return r.status === "absent"; }).length;
-    var completion = renderStats(present, absent, rows.length);
-    renderAttendance(rows);
-
-    var certRes = await db.from("certificates")
-      .select("id, file_path, issued_at")
-      .eq("student_id", profile.id)
-      .order("issued_at", { ascending: false })
-      .limit(1);
-    if (certRes.error) App.toast(certRes.error.message, "error");
-    var cert = (certRes.data && certRes.data[0]) || null;
-    renderCertificate(cert);
+    await loadFiles();
+    await loadAssignments();
 
     var notes = [];
-    if (cert) notes.push({ title: "Certificate available", text: "Your certificate is ready to download." });
     if (course) {
-      var today = App.WEEKDAYS[new Date().getDay()];
-      if ((course.course_days || []).indexOf(today) !== -1) {
-        notes.push({ title: "Class today", text: course.name + " · " + today });
-      }
+      var ann = await db.from("announcements")
+        .select("title, body, created_at")
+        .eq("course_id", course.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      if (ann.error) App.toast(ann.error.message, "error");
+      (ann.data || []).forEach(function (a) {
+        notes.push({ title: a.title, text: a.body || App.fmtDate(a.created_at), icon: ICON_ANNOUNCE });
+      });
+      notes.push({ title: course.name, text: App.datesLabel(course.course_dates, 3) });
+    } else {
+      notes.push({ title: "No course", text: "Ask an administrator to add you to a course." });
     }
-    notes.push({
-      title: "Completion " + completion + "%",
-      text: present + " present, " + absent + " absent."
-    });
     App.setNotifications(notes);
   }
 

@@ -13,46 +13,51 @@
   <main class="page">
     <div class="page-head">
       <h1>My dashboard</h1>
-      <p>Your course, attendance and certificate at a glance.</p>
+      <p>Your course, materials and assignments at a glance.</p>
     </div>
 
     <div class="profile-hero" id="hero"></div>
 
-    <div class="grid grid-3" id="stats" style="margin-top:18px"></div>
-
-    <section class="card" id="progressCard" style="margin-top:18px">
-      <div class="section-head">
-        <div>
-          <h2>Course completion</h2>
-          <p class="sub">Present sessions out of all recorded sessions.</p>
-        </div>
-        <span class="badge badge-violet" id="progressLabel">0%</span>
-      </div>
-      <div class="progress"><span id="progressBar" style="width:0%"></span></div>
-    </section>
-
     <div class="grid grid-2" style="margin-top:18px">
-      <section class="card" id="attendanceCard">
+      <section class="card" id="filesCard">
         <div class="section-head">
           <div>
-            <h2>Attendance</h2>
-            <p class="sub">Sessions recorded for you by your instructor.</p>
+            <h2>Course files</h2>
+            <p class="sub">Materials shared by your instructor.</p>
           </div>
         </div>
-        <div id="attendanceBody"></div>
+        <div id="filesBody"></div>
       </section>
 
-      <section class="card" id="certCard">
+      <section class="card" id="assignmentsCard">
         <div class="section-head">
           <div>
-            <h2>Certificate</h2>
-            <p class="sub">Uploaded by an administrator.</p>
+            <h2>Assignments</h2>
+            <p class="sub">Homework sent by your instructor.</p>
           </div>
         </div>
-        <div id="certBody"></div>
+        <div id="assignmentsBody"></div>
       </section>
     </div>
   </main>
+
+  <!-- ===================== Course details ===================== -->
+  <div class="modal" id="courseDetailModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="courseDetailTitle">
+    <div class="modal-card modal-xl">
+      <div class="modal-head">
+        <h2 id="courseDetailTitle">Course details</h2>
+        <button type="button" class="icon-btn" data-close="courseDetailModal" aria-label="Close">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="courseDetailBody"></div>
+      <div class="modal-foot">
+        <button type="button" class="btn" data-close="courseDetailModal">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <input type="file" id="solutionInput" accept=".pdf,.doc,.docx,.zip,.png,.jpg,.jpeg,.txt" hidden>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/config.js"></script>

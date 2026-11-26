@@ -18,5 +18,7 @@ window.LEARNERA_CONFIG = {
 
   // Storage buckets (created by supabase/schema.sql - change only if you renamed them)
   AVATAR_BUCKET: "avatars",
-  CERTIFICATE_BUCKET: "certificates"
+  CERTIFICATE_BUCKET: "certificates",
+  COURSE_FILE_BUCKET: "course-files",
+  SUBMISSION_BUCKET: "submissions"
 };
